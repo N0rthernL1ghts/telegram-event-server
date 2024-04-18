@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 
 	"github.com/go-faster/errors"
@@ -34,7 +35,19 @@ var (
 	upgrader   = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			origin := r.Header.Get("Origin")
-			allowed := origin == "http://172.17.11.5"
+			allowedOriginsEnv := os.Getenv("ALLOWED_ORIGINS")
+			if allowedOriginsEnv == "*" {
+				log.Warn("Warning: Allowing all origins", zap.String("origin", origin))
+				return true
+			}
+			allowedOrigins := strings.Split(allowedOriginsEnv, ",")
+			allowed := false
+			for _, allowedOrigin := range allowedOrigins {
+				if origin == allowedOrigin {
+					allowed = true
+					break
+				}
+			}
 			if !allowed {
 				log.Warn("Connection from disallowed origin", zap.String("origin", origin))
 			}

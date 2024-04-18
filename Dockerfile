@@ -25,4 +25,7 @@ WORKDIR /app
 
 CMD [ "/app/tg-events-service" ]
 
+
+
+ENV ALLOWED_ORIGINS="http://127.0.0.1"
 EXPOSE 8080/TCP

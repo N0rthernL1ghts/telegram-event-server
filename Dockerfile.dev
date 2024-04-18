@@ -5,4 +5,5 @@ WORKDIR /app
 
 RUN apk add --update --no-cache git fish bash nano
 
+ENV ALLOWED_ORIGINS="http://127.0.0.1"
 EXPOSE 8080/TCP

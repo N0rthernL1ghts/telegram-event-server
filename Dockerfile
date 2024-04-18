@@ -2,11 +2,19 @@ FROM golang:1.22.2-alpine AS builder
 
 WORKDIR /app
 
+RUN set -eux \
+    && apk add --no-cache --update make
+
+
+COPY ["./go.mod", "./go.sum", "/app/"]
+RUN set -eux \
+    && go mod download
+
 COPY ["./server/", "/app/server/"]
-COPY ["./go.mod", "./go.sum", "./Makefile", "/app/"]
+COPY ["./Makefile", "/app/"]
 
 RUN set -eux \
-    && apk add --no-cache make \
+    && export CGO_ENABLED=0 \
     && make build
 
 

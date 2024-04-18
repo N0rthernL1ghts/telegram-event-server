@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+main() {
+    if [ -f "./config.env" ]; then
+        echo "Loading config.env"
+        source ./config.env
+    fi
+
+    docker run --init --rm -it \
+      --network "bot_default" \
+      --env "APP_ID=${APP_ID:?}" \
+	  --env "APP_HASH=${APP_HASH:?}" \
+      --env "SESSION_FILE=/data/session.json" \
+      -p "8080:8080" \
+      -v "${PWD}/data/service/data:/data" \
+       localhost/puharic/tgapi-sever:svc
+}
+
+main "${@}"

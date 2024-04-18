@@ -1,0 +1,8 @@
+FROM golang:1.22.2-alpine
+
+WORKDIR /app
+
+
+RUN apk add --update --no-cache git fish bash nano
+
+EXPOSE 8080/TCP

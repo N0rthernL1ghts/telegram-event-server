@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+
+main() {
+    set -e
+
+    local targetDev="${1:-dev}"
+
+    if [ "${targetDev}" = "svc" ]; then
+        docker build -t localhost/puharic/tgapi-sever:svc --file Dockerfile .
+        return
+    fi
+
+    docker build -t localhost/puharic/tgapi-sever:dev --file Dockerfile.dev .
+}
+
+main "${@}"

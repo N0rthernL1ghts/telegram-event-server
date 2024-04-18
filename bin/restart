@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+
+main() {
+    docker compose down -v
+    docker compose up
+}
+
+main "${@}"

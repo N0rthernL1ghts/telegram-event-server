@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+main() {
+    if [ -f "./config.env" ]; then
+        echo "Loading config.env"
+        source ./config.env
+    fi
+
+    docker run --init --rm -it \
+      --network "bot_default" \
+      --env "APP_ID=${APP_ID:?}" \
+	  --env "APP_HASH=${APP_HASH:?}" \
+      --env "SESSION_FILE=/data/session.json" \
+      -p "8081:8080" \
+      -v "${PWD}/server:/app/server" \
+      -v "${PWD}/go.mod:/app/go.mod" \
+      -v "${PWD}/go.sum:/app/go.sum" \
+      -v "${PWD}/Makefile:/app/Makefile" \
+      -v "${PWD}/data/service/data:/data" \
+      -v "${PWD}/data/fish/config:/root/.config/fish" \
+      -v "${PWD}/data/fish/local:/root/.local/share/fish" \
+       localhost/puharic/tgapi-sever:dev fish
+}
+
+main "${@}"

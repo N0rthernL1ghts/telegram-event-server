@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
 
 	"github.com/go-faster/errors"
 	"github.com/gorilla/websocket"
@@ -22,42 +21,32 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-type Client struct {
-	conn *websocket.Conn
-	send chan []byte
-}
+var clients = make(map[*websocket.Conn]bool) // connected clients
+var broadcast = make(chan []byte)            // broadcast channel
 
-var (
-	clients    = make(map[*Client]bool)
-	broadcast  = make(chan []byte)
-	register   = make(chan *Client)
-	unregister = make(chan *Client)
-	upgrader   = websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			origin := r.Header.Get("Origin")
-			allowedOriginsEnv := os.Getenv("ALLOWED_ORIGINS")
-			if allowedOriginsEnv == "*" {
-				log.Warn("Warning: Allowing all origins", zap.String("origin", origin))
-				return true
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		allowedOriginsEnv := os.Getenv("ALLOWED_ORIGINS")
+		if allowedOriginsEnv == "*" {
+			log.Warn("Warning: Allowing all origins", zap.String("origin", origin))
+			return true
+		}
+		allowedOrigins := strings.Split(allowedOriginsEnv, ",")
+		allowed := false
+		for _, allowedOrigin := range allowedOrigins {
+			if origin == allowedOrigin {
+				allowed = true
+				break
 			}
-			allowedOrigins := strings.Split(allowedOriginsEnv, ",")
-			allowed := false
-			for _, allowedOrigin := range allowedOrigins {
-				if origin == allowedOrigin {
-					allowed = true
-					break
-				}
-			}
-			if !allowed {
-				log.Warn("Connection from disallowed origin", zap.String("origin", origin))
-			}
-			return allowed
-		},
-	}
-	log           *zap.Logger
-	clientMx      sync.Mutex
-	activeClients sync.WaitGroup
-)
+		}
+		if !allowed {
+			log.Warn("Connection from disallowed origin", zap.String("origin", origin))
+		}
+		return allowed
+	},
+}
+var log *zap.Logger
 
 func main() {
 	var err error
@@ -71,85 +60,55 @@ func main() {
 
 	http.HandleFunc("/events", handleConnections)
 
-	serverErr := make(chan error, 1)
 	go func() {
-		serverErr <- http.ListenAndServe(":8080", nil)
-	}()
-
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
-
-	go func() {
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+		defer cancel()
 		if err := run(ctx); err != nil {
-			log.Fatal("Failed to run: ", zap.Error(err))
-			os.Exit(1)
+			panic(err)
 		}
 	}()
 
-	select {
-	case err := <-serverErr:
-		if err != nil {
-			log.Fatal("ListenAndServe: ", zap.Error(err))
-		}
-	case <-ctx.Done():
-		log.Info("Interrupt signal received, shutting down...")
+	err = http.ListenAndServe(":8080", nil)
+	if err != nil {
+		log.Fatal("ListenAndServe: ", zap.Error(err))
 	}
 }
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
+	// Upgrade initial GET request to a websocket
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Error("Upgrade: ", zap.Error(err))
-		return
+		log.Fatal("Upgrade: ", zap.Error(err))
 	}
 
-	client := &Client{conn: ws, send: make(chan []byte)}
-	register <- client
+	// Register our new client
+	clients[ws] = true
 
-	go func() {
-		defer func() {
-			unregister <- client
-			client.conn.Close()
-		}()
-
-		for {
-			_, _, err := client.conn.ReadMessage()
-			if err != nil {
-				break
-			}
-		}
+	defer func() {
+		delete(clients, ws)
+		ws.Close()
 	}()
+
+	for {
+		_, _, err := ws.ReadMessage()
+		if err != nil {
+			break
+		}
+	}
 }
 
 func handleMessages() {
 	for {
-		select {
-		case client := <-register:
-			clientMx.Lock()
-			clients[client] = true
-			clientMx.Unlock()
-			activeClients.Add(1)
-		case client := <-unregister:
-			clientMx.Lock()
-			if _, ok := clients[client]; ok {
+		// Grab the next message from the broadcast channel
+		msg := <-broadcast
+		// Send it out to every client that is currently connected
+		for client := range clients {
+			err := client.WriteMessage(websocket.TextMessage, msg)
+			if err != nil {
+				log.Sugar().Errorf("error: %v", err)
+				client.Close()
 				delete(clients, client)
-				close(client.send)
 			}
-			clientMx.Unlock()
-			activeClients.Done()
-		case message := <-broadcast:
-			log.Info("Message received from broadcast", zap.ByteString("message", message))
-			clientMx.Lock()
-			for client := range clients {
-				select {
-				case client.send <- message:
-				default:
-					log.Warn("Failed to send message to client")
-					delete(clients, client)
-					close(client.send)
-				}
-			}
-			clientMx.Unlock()
 		}
 	}
 }
@@ -181,15 +140,14 @@ func run(ctx context.Context) error {
 		return err
 	}
 
+	// Setup message update handlers.
 	d.OnNewChannelMessage(func(ctx context.Context, e tg.Entities, update *tg.UpdateNewChannelMessage) error {
 		msg, _ := json.Marshal(update.Message)
-		log.Info("New channel message", zap.ByteString("message", msg))
 		broadcast <- msg
 		return nil
 	})
 	d.OnNewMessage(func(ctx context.Context, e tg.Entities, update *tg.UpdateNewMessage) error {
 		msg, _ := json.Marshal(update.Message)
-		log.Info("New message", zap.ByteString("message", msg))
 		broadcast <- msg
 		return nil
 	})

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"time"
 
 	"github.com/go-faster/errors"
 	"github.com/gorilla/websocket"
@@ -69,10 +70,28 @@ func main() {
 		}
 	}()
 
-	err = http.ListenAndServe(":8080", nil)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", zap.Error(err))
-	}
+	server := &http.Server{Addr: ":8080"}
+
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Fatal("ListenAndServe: ", zap.Error(err))
+		}
+	}()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
+	// Block until we receive our signal.
+	<-c
+
+	// Create a deadline to wait for.
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	defer cancel()
+	server.Shutdown(ctx)
+
+	log.Info("Interrupt signal received, shutting down...")
+	os.Exit(0)
 }
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {

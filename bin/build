@@ -6,7 +6,7 @@ main() {
     local targetDev="${1:-dev}"
 
     if [ "${targetDev}" = "svc" ]; then
-        docker build -t localhost/puharic/tgapi-sever:svc --file Dockerfile .
+        docker compose build events-service
         return
     fi
 

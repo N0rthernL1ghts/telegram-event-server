@@ -6,15 +6,7 @@ main() {
         source ./config.env
     fi
 
-    docker run --init --rm -it \
-      --network "bot_default" \
-      --env "ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://127.0.0.1}" \
-      --env "APP_ID=${APP_ID:?}" \
-	  --env "APP_HASH=${APP_HASH:?}" \
-      --env "SESSION_FILE=/data/session.json" \
-      -p "8080:8080" \
-      -v "${PWD}/data/service/data:/data" \
-       localhost/puharic/tgapi-sever:svc
+    docker compose up -d events-service
 }
 
 main "${@}"

@@ -1,0 +1,23 @@
+networks:
+  default:
+
+services:
+  events-service:
+    init: true
+    build:
+      context: .
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+    environment:
+      APP_ID: ""
+      APP_HASH: ""
+      ALLOWED_ORIGINS: "*"
+      SESSION_FILE: "/data/session.json"
+    volumes:
+      - "./data/service/data:/data"
+    ports:
+      - 8080:8080
+    networks:
+      default:

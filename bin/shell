@@ -8,7 +8,7 @@ main() {
 
     docker run --init --rm -it \
       --network "bot_default" \
-      --env "ALLOWED_ORIGINS=${ALLOWED_ORIGINS:?}" \
+      --env "ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}" \
       --env "APP_ID=${APP_ID:?}" \
 	  --env "APP_HASH=${APP_HASH:?}" \
       --env "SESSION_FILE=/data/session.json" \

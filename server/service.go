@@ -124,7 +124,7 @@ func handleMessages() {
 			if err != nil {
 				log.Sugar().Errorf("error: %v", err)
 				client.Close()
-				delete(clients, client)
+				delete(clients, client) // Ensure client is removed from the map
 			}
 		}
 	}

@@ -21,32 +21,33 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-var clients = make(map[*websocket.Conn]bool) // connected clients
-var broadcast = make(chan []byte)            // broadcast channel
-
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		origin := r.Header.Get("Origin")
-		allowedOriginsEnv := os.Getenv("ALLOWED_ORIGINS")
-		if allowedOriginsEnv == "*" {
-			log.Warn("Warning: Allowing all origins", zap.String("origin", origin))
-			return true
-		}
-		allowedOrigins := strings.Split(allowedOriginsEnv, ",")
-		allowed := false
-		for _, allowedOrigin := range allowedOrigins {
-			if origin == allowedOrigin {
-				allowed = true
-				break
+var (
+	clients   = make(map[*websocket.Conn]bool) // connected clients
+	broadcast = make(chan []byte)
+	upgrader  = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			origin := r.Header.Get("Origin")
+			allowedOriginsEnv := os.Getenv("ALLOWED_ORIGINS")
+			if allowedOriginsEnv == "*" {
+				log.Warn("Warning: Allowing all origins", zap.String("origin", origin))
+				return true
 			}
-		}
-		if !allowed {
-			log.Warn("Connection from disallowed origin", zap.String("origin", origin))
-		}
-		return allowed
-	},
-}
-var log *zap.Logger
+			allowedOrigins := strings.Split(allowedOriginsEnv, ",")
+			allowed := false
+			for _, allowedOrigin := range allowedOrigins {
+				if origin == allowedOrigin {
+					allowed = true
+					break
+				}
+			}
+			if !allowed {
+				log.Warn("Connection from disallowed origin", zap.String("origin", origin))
+			}
+			return allowed
+		},
+	}
+	log *zap.Logger
+)
 
 func main() {
 	var err error

@@ -35,17 +35,13 @@ var (
 				return true
 			}
 			allowedOrigins := strings.Split(allowedOriginsEnv, ",")
-			allowed := false
 			for _, allowedOrigin := range allowedOrigins {
 				if origin == allowedOrigin {
-					allowed = true
-					break
+					return true
 				}
 			}
-			if !allowed {
-				log.Warn("Connection from disallowed origin", zap.String("origin", origin))
-			}
-			return allowed
+			log.Warn("Connection from disallowed origin", zap.String("origin", origin))
+			return false
 		},
 	}
 	log *zap.Logger

@@ -11,9 +11,9 @@ services:
       restart_policy:
         condition: any
     environment:
-      APP_ID: ""
-      APP_HASH: ""
-      ALLOWED_ORIGINS: "*"
+      APP_ID: "${APP_ID:-}"
+      APP_HASH: "${APP_HASH:-}"
+      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-}"
       SESSION_FILE: "/data/session.json"
     volumes:
       - "./data/service/data:/data"

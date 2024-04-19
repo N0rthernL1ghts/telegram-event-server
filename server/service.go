@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -44,7 +45,9 @@ var (
 			return false
 		},
 	}
-	log *zap.Logger
+	log      *zap.Logger
+	shutdown = make(chan struct{})
+	wg       sync.WaitGroup
 )
 
 func main() {
@@ -55,6 +58,7 @@ func main() {
 	}
 	defer log.Sync()
 
+	wg.Add(1)
 	go handleMessages()
 
 	http.HandleFunc("/events", handleConnections)
@@ -87,6 +91,9 @@ func main() {
 	defer cancel()
 	server.Shutdown(ctx)
 
+	close(shutdown) // Close shutdown channel to signal goroutines to exit
+	wg.Wait()       // Wait for all goroutines to exit
+
 	log.Info("Interrupt signal received, shutting down...")
 	os.Exit(0)
 }
@@ -107,24 +114,33 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	for {
-		_, _, err := ws.ReadMessage()
-		if err != nil {
-			break
+		select {
+		case <-shutdown:
+			return
+		default:
+			_, _, err := ws.ReadMessage()
+			if err != nil {
+				return
+			}
 		}
 	}
 }
 
 func handleMessages() {
+	defer wg.Done()
 	for {
-		// Grab the next message from the broadcast channel
-		msg := <-broadcast
-		// Send it out to every client that is currently connected
-		for client := range clients {
-			err := client.WriteMessage(websocket.TextMessage, msg)
-			if err != nil {
-				log.Sugar().Errorf("error: %v", err)
-				client.Close()
-				delete(clients, client) // Ensure client is removed from the map
+		select {
+		case <-shutdown:
+			return
+		case msg := <-broadcast:
+			// Send it out to every client that is currently connected
+			for client := range clients {
+				err := client.WriteMessage(websocket.TextMessage, msg)
+				if err != nil {
+					log.Sugar().Errorf("error: %v", err)
+					client.Close()
+					delete(clients, client) // Ensure client is removed from the map
+				}
 			}
 		}
 	}

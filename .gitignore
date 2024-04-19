@@ -1,3 +1,4 @@
 data/
 app/main
 config.env
+docker-compose.override.yml

@@ -17,7 +17,7 @@ target "build-common" {
 }
 
 variable "REGISTRY_CACHE" {
-  default = "ghcr.io/xZero707/telegram-event-server-cache"
+  default = "docker.io/nlss/telegram-event-server-cache"
 }
 
 ######################
@@ -56,11 +56,13 @@ function "get-tags" {
   params = [version, extra_versions]
   result = concat(
     [
-      "ghcr.io/xZero707/telegram-event-server:${version}"
+      "docker.io/nlss/telegram-event-server:${version}",
+      "ghcr.io/n0rthernl1ghts/telegram-event-server:${version}"
     ],
     flatten([
       for extra_version in extra_versions : [
-        "ghcr.io/xZero707/telegram-event-server:${extra_version}"
+        "docker.io/nlss/telegram-event-server:${extra_version}",
+        "ghcr.io/n0rthernl1ghts/telegram-event-server:${extra_version}"
       ]
     ])
   )

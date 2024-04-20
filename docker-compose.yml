@@ -4,6 +4,7 @@ networks:
 services:
   events-service:
     init: true
+    image: "ghcr.io/n0rthernl1ghts/telegram-event-server:latest"
     build:
       context: .
     deploy:

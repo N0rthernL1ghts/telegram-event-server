@@ -34,8 +34,8 @@ WORKDIR /app
 CMD [ "/app/tg-events-service" ]
 
 LABEL maintainer="Aleksandar Puharic <aleksandar@puharic.com>" \
-      org.opencontainers.image.documentation="https://github.com/xZero707/telegram-event-server/wiki" \
-      org.opencontainers.image.source="https://github.com/xZero707/telegram-event-server" \
+      org.opencontainers.image.documentation="https://github.com/N0rthernL1ghts/telegram-event-server/wiki" \
+      org.opencontainers.image.source="https://github.com/N0rthernL1ghts/telegram-event-server" \
       org.opencontainers.image.description="Telegram Event Server 1.0.0 - Build ${TARGETPLATFORM}" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="1.0.0"

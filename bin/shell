@@ -21,7 +21,7 @@ main() {
       -v "${PWS}/data/go/pkg:/go/pkg" \
       -v "${PWD}/data/fish/config:/root/.config/fish" \
       -v "${PWD}/data/fish/local:/root/.local/share/fish" \
-       localhost/puharic/tgapi-sever:dev fish
+       localhost/nobody/tgapi-sever:dev fish
 }
 
 main "${@}"

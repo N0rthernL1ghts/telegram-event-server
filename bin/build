@@ -10,7 +10,7 @@ main() {
         return
     fi
 
-    docker build -t localhost/puharic/tgapi-sever:dev --file Dockerfile.dev .
+    docker build -t localhost/nobody/tgapi-sever:dev --file Dockerfile.dev .
 }
 
 main "${@}"

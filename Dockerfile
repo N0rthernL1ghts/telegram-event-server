@@ -25,7 +25,7 @@ COPY --from=builder --chmod=0775 ["/app/build/release/tg-events-service", "/app/
 
 
 
-FROM alpine:3.20
+FROM alpine:3.21
 
 COPY --from=rootfs ["/", "/"]
 
